@@ -9,6 +9,9 @@ import subprocess, shlex
 import feedparser
 from feedparser import FeedParserDict
 from urllib.request import ProxyHandler
+from smtplib import SMTP, SMTP_SSL, SMTPException
+from email.message import EmailMessage
+import re
 
 class Miscellaneous:
 
@@ -272,3 +275,81 @@ class Miscellaneous:
                     titles.append(entry.title)
                     links.append(entry.link)
         return titles, links
+
+    @staticmethod
+    def is_valid_email(p_email: str) -> bool:
+        """
+        * Проверка корректности адреса e-mail
+        * Адрес электронной почты должен соответствовать стандарту RFC 5322
+        * (Internet Message Format).
+        * http://www.ietf.org/rfc/rfc5322.txt
+        *
+        * @param p_email Адрес электронной почты (e-mail)
+        * @return True - адрес электронной почты в порядке; False - в адресе электронной почты есть ошибки
+        """
+        is_valid: bool = False
+        if not "".__eq__(p_email):
+            is_valid = re.compile(r"^\S+@\S+\.\S+$").match(p_email) is not None
+        return is_valid
+
+    @staticmethod
+    def send_email(p_host: str, p_port: int, p_subject: str, p_text: str, p_from: str, p_to: str, p_tls: bool = False, p_user: str = None, p_password: str = None) -> bool:
+        """
+        * Отправка e-mail
+        *
+        * @param p_host Хост SMTP-сервера
+        * @param p_port Порт SMTP-сервера
+        * @param p_subject Тема письма
+        * @param p_text Текст письма (MIME-тип: plain/text)
+        * @param p_from Адрес электронной почты отправителя (т.е. "от кого")
+        * @param p_to Адрес электронной почты получателя (т.е. "кому")
+        * @param p_tls Признак "SSL/TLS" для SMTP-сервера (по умолчанию - нет)
+        * @param p_user Логин для SMTP-сервера с аутентификацией (не заполнять, если сервер без аутентификации)
+        * @param p_password Пароль для SMTP-сервера с аутентификацией (не заполнять, если сервер без аутентификации)
+        * @return True - нет ошибок при отправке; False - есть ошибки при отправке
+        """
+        SMTP_TIMEOUT: float = 10 # через сколько секунд считать, что сервер не отвечает
+        is_sent: bool = False
+        if (
+            not "".__eq__(p_host)
+            and 1 <= p_port <= 65534
+            and not "".__eq__(p_subject)
+            and not "".__eq__(p_text)
+            and Miscellaneous.is_valid_email(p_from)
+            and Miscellaneous.is_valid_email(p_to)
+        ):
+            msg: EmailMessage = EmailMessage()
+            msg.set_content(p_text)
+            msg["Subject"] = p_subject
+            msg["From"] = p_from
+            msg["To"] = p_to
+            is_smtp_ok: bool = True
+            s: SMTP = None
+            s_ssl: SMTP_SSL = None
+            try:
+                if p_tls:
+                    s_ssl = SMTP_SSL(p_host, p_port, timeout = SMTP_TIMEOUT)
+                else:
+                    s = SMTP(p_host, p_port, timeout = SMTP_TIMEOUT)
+                if p_tls:
+                    s_ssl.ehlo()
+                else:
+                    s.ehlo()
+                if p_user is not None and p_password is not None:
+                    if p_tls:
+                        s_ssl.login(p_user, p_password)
+                    else:
+                        s.login(p_user, p_password)
+                if p_tls:
+                    s_ssl.send_message(msg)
+                else:
+                    s.send_message(msg)
+            except SMTPException:
+                is_smtp_ok = False
+            finally:
+                if s is not None:
+                    s.quit()
+                if s_ssl is not None:
+                    s_ssl.quit()
+            is_sent = is_smtp_ok
+        return is_sent

@@ -249,11 +249,7 @@ def run_bot(api_token: str, http_proxy: str, https_proxy: str) -> None:
                     send_message(bot, message.chat.id, "IRC-бот не работает в данный момент.")
             elif message.text == "/username":
                 send_message(bot, message.chat.id, Miscellaneous.get_username())
-            elif (
-                (message.text == "/ps")
-                or (message.text == "/process")
-                or (message.text == "/processes")
-            ):
+            elif message.text in ["/ps", "/process", "/processes"]:
                 cnt = 0
                 processes = Miscellaneous.get_running_processes()
                 for process_name in processes:
@@ -262,26 +258,14 @@ def run_bot(api_token: str, http_proxy: str, https_proxy: str) -> None:
                     send_message(bot, message.chat.id, process_name)
                     cnt += 1
                 send_message(bot, message.chat.id, f"Общее количество процессов: {len(processes)}.")
-            elif (
-                (message.text == "/date")
-                or (message.text == "/time")
-            ):
+            elif message.text in ["/date", "/time"]:
                 send_message(bot, message.chat.id, f"Текущая дата: {Miscellaneous.get_current_time()}.")
-            elif (
-                (message.text.lower() == "/help")
-                or (message.text == "/?")
-            ):
+            elif message.text in ["/help", "/?"]:
                 send_message(bot, message.chat.id, "Команды, допустимые для использования: /ip, /username, /ps, /process, /processes, /date, /time, /help, /?, /quit, /stop, /exit, /ver, /sys, /printenv, /phrase, /send, /weather, /outer_ip, /timer, /calc, /cmd, /rss, /news, /irc")
-            elif (
-                (message.text == "/ver")
-                or (message.text == "/sys")
-            ):
+            elif message.text in ["/ver", "/sys"]:
                 sys_prop = Miscellaneous.get_system_properties()
                 send_message(bot, message.chat.id, f"ОС: {sys_prop[0]}, версия {sys_prop[1]}, релиз {sys_prop[2]}. ОЗУ: всего: {sys_prop[3]}; используется: {sys_prop[4]}; свободно: {sys_prop[5]}; процент использования: {sys_prop[6]}.")
-            elif (
-                (message.text == "/rss")
-                or (message.text == "/news")
-            ):
+            elif message.text in ["/rss", "/news"]:
                 rss_titles = []
                 rss_links = []
                 RSS_FEED_URL: str = "https://habr.com/ru/rss/hub/webdev/all/?fl=ru"
@@ -411,11 +395,7 @@ def run_bot(api_token: str, http_proxy: str, https_proxy: str) -> None:
                         send_message(bot, message.chat.id, outer_ip_line)
                 else:
                     send_message(bot, message.chat.id, f"Невозможно определить {chr(34)}белый{chr(34)} IP-адрес.")
-            elif ( # команда завершения работы бота
-                (message.text.lower() == "/quit")
-                or (message.text.lower() == "/stop")
-                or (message.text.lower() == "/exit")
-            ):
+            elif message.text.lower() in ["/quit", "/stop", "/exit"]: # команда завершения работы бота
                 send_message(bot, message.chat.id, "Goodbye, cruel world! Никогда больше к вам не вернусь.")
                 bot.stop_poll
                 quit_app()
