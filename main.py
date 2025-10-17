@@ -19,6 +19,7 @@ import configparser
 import argparse
 import time, threading
 import shlex
+import random
 
 import sqlite3
 from sqlite3 import IntegrityError, OperationalError, Error
@@ -32,6 +33,7 @@ from telebot import apihelper
 from telebot.types import Message
 
 from miscellaneous import Miscellaneous
+from downgrade import Downgrade
 from models import Constant
 from ircbot import IRCBot
 from irc.client import ServerNotConnectedError
@@ -288,7 +290,17 @@ def run_bot(api_token: str, http_proxy: str, https_proxy: str) -> None:
                     send_message(bot, message.chat.id, f"{key}: {value}")
                     cnt += 1
             elif message.text == "/phrase":
-                phrase: str = Miscellaneous.get_phrase_outta_file("phrase.txt", Constant.GLOBAL_CODEPAGE.value)
+                ph_choice: str = random.choice(["aphorism", "joke"])
+                phrase: str = ""
+                if ph_choice == "aphorism":
+                    phrase = Miscellaneous.get_phrase_outta_file("phrase.txt", Constant.GLOBAL_CODEPAGE.value)
+                elif ph_choice == "joke":
+                    ph_proxy: str = ""
+                    if not "".__eq__(http_proxy):
+                        ph_proxy = http_proxy
+                    elif not "".__eq__(https_proxy):
+                        ph_proxy = https_proxy
+                    phrase = Downgrade.jokes_script("ru", ph_proxy)
                 if not "".__eq__(phrase):
                     send_message(bot, message.chat.id, phrase)
                 else:
