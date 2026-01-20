@@ -449,6 +449,7 @@ def run_irc_bot() -> IRCBot:
     IRC_NICKNAME: str = "nickname"
     IRC_SERVER: str = "server"
     IRC_PORT: str = "port"
+    IRC_CODEPAGE: str = "codepage"
     bot: IRCBot = None
     config = configparser.ConfigParser()
     try:
@@ -471,7 +472,11 @@ def run_irc_bot() -> IRCBot:
                     l_port: int = config.getint(IRC_SECTION, IRC_PORT)
                     if not (1 <= l_port <= 65534):
                         raise ValueError("Значение порта вне допустимого диапазона (1 - 65534)")
-            bot = IRCBot(l_channel, l_nickname, l_server, l_port)
+                l_codepage: str = ""
+                if IRC_CODEPAGE in config[IRC_SECTION]:
+                    l_codepage = config[IRC_SECTION][IRC_CODEPAGE].strip()
+                l_codepage = "utf-8" if "".__eq__(l_codepage) else l_codepage
+            bot = IRCBot(l_channel, l_nickname, l_server, l_port, l_codepage)
             Miscellaneous.print_message("Запуск IRC-бота...")
             thread: threading.Thread = threading.Thread(
                 target=lambda: (

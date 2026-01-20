@@ -23,9 +23,10 @@ class IRCBot(SingleServerIRCBot):
     DB_FILENAME: str = "irc.db" # база данных для хранения чатлогов IRC
     is_connected: bool = False # признак подключения к серверу IRC (по умолчанию не подключён)
 
-    def __init__(self, channel: str, nickname: str, server: str, port = 6667):
+    def __init__(self, channel: str, nickname: str, server: str, port: int = 6667, encoding: str = "utf-8"):
         SingleServerIRCBot.__init__(self, [(server, port)], nickname, nickname)
         self.channel = channel
+        self.encoding = encoding
 
     def irc_log(self, msg: str) -> None:
         """
@@ -129,6 +130,11 @@ class IRCBot(SingleServerIRCBot):
         * @param event Экземпляр объекта "Событие"
         """
         self.is_connected = True
+        try: # попробуем задать encoding у объекта connection, если он поддерживает
+            if hasattr(connection, "encoding"):
+                connection.encoding = self.encoding
+        except Exception:
+            pass
         connection.join(self.channel)
 
     def send_message(self, connection, msg: str) -> None:
@@ -139,7 +145,10 @@ class IRCBot(SingleServerIRCBot):
         * @param msg Текст сообщения
         """
         if not "".__eq__(msg):
-            connection.privmsg(self.channel, msg)
+            try: # некоторые реализации ожидают str, некоторые - bytes
+                connection.privmsg(self.channel, msg)
+            except TypeError:
+                connection.privmsg(self.channel, msg.encode(self.encoding, errors="replace"))
             self.irc_log(f"<{connection.get_nickname()}> {msg}")
 
     def on_pubmsg(self, connection, event):
@@ -149,8 +158,15 @@ class IRCBot(SingleServerIRCBot):
         * @param connection Экземпляр объекта "Соединение"
         * @param event Экземпляр объекта "Событие"
         """
-        sender: str = event.source.nick
-        message: str = event.arguments[0]
+        sender = event.source.nick
+        raw = event.arguments[0]
+        if isinstance(raw, (bytes, bytearray)):
+            try:
+                message = raw.decode(self.encoding, errors="replace")
+            except Exception:
+                message = raw.decode("utf-8", errors="replace")
+        else:
+            message = raw
         self.irc_log(f"<{sender}> {message}")
         # ответить на определённое сообщение
         if message.lower() == "hello":
