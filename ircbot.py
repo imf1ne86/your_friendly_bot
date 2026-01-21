@@ -158,7 +158,17 @@ class IRCBot(SingleServerIRCBot):
         * @param connection Экземпляр объекта "Соединение"
         * @param event Экземпляр объекта "Событие"
         """
-        sender = event.source.nick
+        raw_nick = event.source.nick
+        if isinstance(raw_nick, (bytes, bytearray)):
+            try:
+                sender = raw_nick.decode(self.encoding, errors="replace")
+            except Exception:
+                sender = raw_nick.decode("utf-8", errors="replace")
+        else:
+            try:
+                sender = raw_nick.encode("latin-1").decode(self.encoding, errors="replace")
+            except Exception:
+                sender = raw_nick
         raw = event.arguments[0]
         if isinstance(raw, (bytes, bytearray)):
             try:
@@ -166,7 +176,10 @@ class IRCBot(SingleServerIRCBot):
             except Exception:
                 message = raw.decode("utf-8", errors="replace")
         else:
-            message = raw
+            try: # это исправляет случаи, когда библиотека неправильно декодировала байты в latin-1/utf-8
+                message = raw.encode("latin-1").decode(self.encoding, errors="replace")
+            except Exception:
+                message = raw
         self.irc_log(f"<{sender}> {message}")
         # ответить на определённое сообщение
         if message.lower() == "hello":

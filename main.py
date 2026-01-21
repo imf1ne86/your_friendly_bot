@@ -476,6 +476,15 @@ def run_irc_bot() -> IRCBot:
                 if IRC_CODEPAGE in config[IRC_SECTION]:
                     l_codepage = config[IRC_SECTION][IRC_CODEPAGE].strip()
                 l_codepage = "utf-8" if "".__eq__(l_codepage) else l_codepage
+            """
+            * Переопределяем буфер декодирования входящего потока для всех подключений библиотеки irc.
+            * LenientDecodingLineBuffer сначала пробует UTF-8, затем откатывается к latin-1 - это
+            * предотвращает ошибку декодирования при подключении к серверам с нестандартной кодировкой
+            * (например, CP1251) и позволяет корректно обрабатывать входящие строки.
+            """
+            from jaraco.stream import buffer
+            import irc.client
+            irc.client.ServerConnection.buffer_class = buffer.LenientDecodingLineBuffer
             bot = IRCBot(l_channel, l_nickname, l_server, l_port, l_codepage)
             Miscellaneous.print_message("Запуск IRC-бота...")
             thread: threading.Thread = threading.Thread(
